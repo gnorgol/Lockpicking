@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,10 +13,13 @@ public class Lockpicking : MonoBehaviour
     public AudioClip unlockSound;
     public AudioClip breakSound;
 
+
+    private bool hasPlayedHintSound = false;
+
     public float unlockAngle;
     public float pickRotation;
     private float lockRotation;
-    private bool canRotate;
+    public bool canRotate;
     public bool isLockpicking;
     private float nextCheckTime;
 
@@ -44,41 +48,57 @@ public class Lockpicking : MonoBehaviour
 
 
 
+    public bool hasPlayedBreakSound = false;
+
     private void HandleLockpicking()
     {
         // Rotation du crochet
+        if (canRotate) {
         float rotationInput = Input.GetAxis("Horizontal");
         pickRotation = Mathf.Clamp(pickRotation - rotationInput * Time.deltaTime * 50f, -180f, 0f);
         lockpickImage.transform.rotation = Quaternion.Euler(0, 0, pickRotation);
+        }
 
         // Rotation de la serrure
-        if (Input.GetKey(KeyCode.Space) && canRotate)
+        if (Input.GetKey(KeyCode.Space))
         {
-            lockRotation = Mathf.Lerp(lockRotation, -90f, Time.deltaTime * 5f);
-            lockInsideImage.transform.rotation = Quaternion.Euler(0, 0, lockRotation);
-            PlayTurningSounds();
-
-            if (Mathf.Abs(lockRotation) > 45f)
+            if (canRotate)
             {
-                if (Mathf.Abs(pickRotation - unlockAngle) < 10f)
+                lockRotation = Mathf.Lerp(lockRotation, -90f, Time.deltaTime * 5f);
+                lockInsideImage.transform.rotation = Quaternion.Euler(0, 0, lockRotation);
+                PlayTurningSounds();
+
+                if (Mathf.Abs(lockRotation) > 45f)
                 {
-                    if (Mathf.Abs(lockRotation) > 80f)
+                    if (Mathf.Abs(pickRotation - unlockAngle) < 10f)
                     {
-                        Unlock();
+                        if (Mathf.Abs(lockRotation) > 80f)
+                        {
+                            Unlock();
+                        }
+                    }
+                    else
+                    {
+                        canRotate = false;
+                        if (!hasPlayedBreakSound)
+                        {
+                            Debug.Log("Lock broken!");
+                            PlaySound(breakSound);
+
+
+                            hasPlayedBreakSound = true;
+                        }
                     }
                 }
-                else
-                {
-                    canRotate = false;
-                    PlaySound(breakSound);
-                }
             }
+
         }
         else
         {
             lockRotation = Mathf.Lerp(lockRotation, 0f, Time.deltaTime * 5f);
             lockInsideImage.transform.rotation = Quaternion.Euler(0, 0, lockRotation);
             canRotate = true;
+            hasPlayedBreakSound = false; // Reset the flag when the player stops rotating
         }
 
         // Vérifier périodiquement si l'angle est correct
@@ -89,11 +109,20 @@ public class Lockpicking : MonoBehaviour
         }
     }
 
+
     private void CheckLockpickAngle()
     {
         if (Mathf.Abs(pickRotation - unlockAngle) < 10f)
         {
-            PlaySound(hintSound);
+            if (!hasPlayedHintSound)
+            {
+                PlaySound(hintSound);
+                hasPlayedHintSound = true;
+            }
+        }
+        else
+        {
+            hasPlayedHintSound = false;
         }
     }
 
@@ -106,8 +135,14 @@ public class Lockpicking : MonoBehaviour
 
     private void PlayTurningSounds()
     {
+        StartCoroutine(PlayTurningSoundsWithDelay());
+    }
+
+    private IEnumerator PlayTurningSoundsWithDelay()
+    {
         int soundIndex = Random.Range(0, turningSounds.Length);
         PlaySound(turningSounds[soundIndex]);
+        yield return new WaitForSeconds(0.5f); // Délai de 0.5 secondes entre les sons
     }
 
     private void PlaySound(AudioClip clip)
@@ -117,6 +152,7 @@ public class Lockpicking : MonoBehaviour
             AudioSource.PlayClipAtPoint(clip, transform.position);
         }
     }
+
 
     public void StopLockpicking()
     {
