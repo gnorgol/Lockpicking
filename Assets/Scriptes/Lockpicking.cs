@@ -1,4 +1,5 @@
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,7 +13,7 @@ public class Lockpicking : MonoBehaviour
     public AudioClip hintSound;
     public AudioClip unlockSound;
     public AudioClip breakSound;
-
+    public GameObject GameResultInfo;
 
     private bool hasPlayedHintSound = false;
 
@@ -26,7 +27,6 @@ public class Lockpicking : MonoBehaviour
     private void Start()
     {
         InitializeLockpicking();
-        
     }
 
     private void Update()
@@ -37,13 +37,15 @@ public class Lockpicking : MonoBehaviour
         }
     }
 
-    private void InitializeLockpicking()
+    public void InitializeLockpicking()
     {
         isLockpicking = true;
         lockRotation = 0f;
         pickRotation = 0f;
         unlockAngle = Random.Range(-180f, 0);
         canRotate = true;
+
+        GameResultInfo.SetActive(false);
     }
 
 
@@ -131,6 +133,13 @@ public class Lockpicking : MonoBehaviour
         isLockpicking = false;
         PlaySound(unlockSound);
         Debug.Log("Unlocked!");
+        DisplayGameResult("Unlocked!", Color.green);
+    }
+    private void DisplayGameResult(string result, Color color)
+    {
+        GameResultInfo.SetActive(true);
+        GameResultInfo.GetComponent<TextMeshProUGUI>().text = result;
+        GameResultInfo.GetComponent<TextMeshProUGUI>().color = color;
     }
 
     private void PlayTurningSounds()
