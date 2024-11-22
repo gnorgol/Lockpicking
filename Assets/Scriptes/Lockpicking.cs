@@ -2,6 +2,7 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 public class Lockpicking : MonoBehaviour
 {
@@ -22,7 +23,12 @@ public class Lockpicking : MonoBehaviour
     private float lockRotation;
     public bool canRotate;
     public bool isLockpicking;
+    public bool isButtonUnlockedPressed;
     private float nextCheckTime;
+
+    public InputActionReference MovementLockpickAction;
+    public InputActionReference UnlockLockpickAction;
+
 
     private void Start()
     {
@@ -35,6 +41,22 @@ public class Lockpicking : MonoBehaviour
         {
             HandleLockpicking();
         }
+    }
+
+    private void OnEnable()
+    {
+        MovementLockpickAction.action.Enable();
+        UnlockLockpickAction.action.Enable();
+        UnlockLockpickAction.action.performed += HandleUnlockAction;
+        UnlockLockpickAction.action.canceled += HandleUnlockActionCanceled;
+    }
+
+    private void OnDisable()
+    {
+        MovementLockpickAction.action.Disable();
+        UnlockLockpickAction.action.Disable();
+        UnlockLockpickAction.action.performed -= HandleUnlockAction;
+        UnlockLockpickAction.action.canceled -= HandleUnlockActionCanceled;
     }
 
     public void InitializeLockpicking()
@@ -56,13 +78,15 @@ public class Lockpicking : MonoBehaviour
     {
         // Rotation du crochet
         if (canRotate) {
-        float rotationInput = Input.GetAxis("Horizontal");
-        pickRotation = Mathf.Clamp(pickRotation - rotationInput * Time.deltaTime * 50f, -180f, 0f);
-        lockpickImage.transform.rotation = Quaternion.Euler(0, 0, pickRotation);
+            Vector2 inputVector = MovementLockpickAction.action.ReadValue<Vector2>();
+            //Left Stick value
+            var leftStick = inputVector.x;
+            float rotationInput = inputVector.x;
+            pickRotation = Mathf.Clamp(pickRotation - rotationInput * Time.deltaTime * 50f, -180f, 0f);
+            lockpickImage.transform.rotation = Quaternion.Euler(0, 0, pickRotation);
         }
 
-        // Rotation de la serrure
-        if (Input.GetKey(KeyCode.Space))
+        if (isButtonUnlockedPressed)
         {
             if (canRotate)
             {
@@ -103,7 +127,7 @@ public class Lockpicking : MonoBehaviour
             hasPlayedBreakSound = false; // Reset the flag when the player stops rotating
         }
 
-        // Vérifier périodiquement si l'angle est correct
+        // Vï¿½rifier pï¿½riodiquement si l'angle est correct
         if (Time.time > nextCheckTime)
         {
             CheckLockpickAngle();
@@ -151,7 +175,7 @@ public class Lockpicking : MonoBehaviour
     {
         int soundIndex = Random.Range(0, turningSounds.Length);
         PlaySound(turningSounds[soundIndex]);
-        yield return new WaitForSeconds(0.5f); // Délai de 0.5 secondes entre les sons
+        yield return new WaitForSeconds(0.5f); // Dï¿½lai de 0.5 secondes entre les sons
     }
 
     private void PlaySound(AudioClip clip)
@@ -167,5 +191,15 @@ public class Lockpicking : MonoBehaviour
     {
         isLockpicking = false;
         Debug.Log("Lockpicking cancelled");
+    }
+
+    private void HandleUnlockAction(InputAction.CallbackContext context)
+    {
+        isButtonUnlockedPressed = true;
+    }
+
+    private void HandleUnlockActionCanceled(InputAction.CallbackContext context)
+    {
+        isButtonUnlockedPressed = false;
     }
 }
